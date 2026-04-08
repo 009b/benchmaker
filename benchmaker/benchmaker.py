@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-Benchmark an Ollama LLM model against all prompts in prompts.txt.
-Usage: python benchmaker.py <model_name>
+Benchmark an Ollama LLM model against prompts in a prompt file.
+Usage: python benchmaker.py <model_name> [mode]
+
+  mode: small (default) — send each line as a separate prompt
+        big             — send the entire file as one prompt
 
 Outputs:
   data.out   — raw per-prompt results (CSV)
@@ -33,9 +36,12 @@ DATA_HEADER   = "timestamp,model,prompt_id,input_tokens,output_tokens,processed_
 RESULT_HEADER = "date,model,avg_tokens_per_second,total_input_tokens,total_processed_tokens,total_output_tokens\n"
 
 
-def load_prompts(path: str) -> list[str]:
+def load_prompts(path: str, mode: str) -> list[str]:
     with open(path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip()]
+        content = f.read()
+    if mode == "big":
+        return [content.strip()]
+    return [line.strip() for line in content.splitlines() if line.strip()]
 
 
 def ensure_header(path: str, header: str) -> None:
@@ -70,21 +76,27 @@ def run_prompt(model: str, prompt: str) -> dict:
     tps              = output_tokens / duration_s if duration_s > 0 else 0.0
 
     return {
-        "input_tokens":     input_tokens,
-        "output_tokens":    output_tokens,
-        "processed_tokens": processed_tokens,
+        "input_tokens":      input_tokens,
+        "output_tokens":     output_tokens,
+        "processed_tokens":  processed_tokens,
         "tokens_per_second": tps,
-        "duration_s":       round(duration_s, 4),
+        "duration_s":        round(duration_s, 4),
     }
 
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Usage: python benchmaker.py <model_name>", file=sys.stderr)
+        print("Usage: python benchmaker.py <model_name> [small|big]", file=sys.stderr)
         sys.exit(1)
 
-    model   = sys.argv[1]
-    prompts = load_prompts(PROMPTS_FILE)
+    model = sys.argv[1]
+    mode  = sys.argv[2].lower() if len(sys.argv) >= 3 else "small"
+
+    if mode not in ("small", "big"):
+        print(f"ERROR: mode must be 'small' or 'big', got '{mode}'", file=sys.stderr)
+        sys.exit(1)
+
+    prompts = load_prompts(PROMPTS_FILE, mode)
 
     ensure_header(DATA_OUT,   DATA_HEADER)
     ensure_header(RESULT_OUT, RESULT_HEADER)
@@ -98,7 +110,17 @@ def main() -> None:
     total_processed = 0
     tps_list        = []
 
-    print(f"[benchmaker] model={model}  prompts={len(prompts)}")
+    print(f"[benchmaker] model={model}  mode={mode}  prompts={len(prompts)}")
+    print("  [warmup] loading model...", end="", flush=True)
+    try:
+        ollama.Client(host=OLLAMA_HOST).chat(
+            model=model,
+            messages=[{"role": "user", "content": "hi"}],
+        )
+        print(" done")
+    except Exception as exc:
+        print(f" ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     with open(DATA_OUT, "a", encoding="utf-8") as data_f:
         for idx, prompt in enumerate(prompts, start=1):
