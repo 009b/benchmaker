@@ -2,17 +2,18 @@
 # run_benchmarks.sh — launch benchmaker.py for every model.
 # Edit MODELS below to add/remove models.
 #
-# Usage: ./run_benchmarks.sh [--mode small|big]
+# Usage: ./run_benchmarks.sh [--mode small|big] [--prompts <file>]
 #   --mode small  (default) send each line as a separate prompt
 #   --mode big              send the entire file as one prompt
+#   --prompts <file>        override the prompt file from config.json
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON="${PYTHON:-python3}"
 BENCHMARKER="${SCRIPT_DIR}/benchmaker.py"
-PROMPTS="${SCRIPT_DIR}/../prompts/prompts.txt"
 MODE="small"
+PROMPTS=""
 
 # ── parse arguments ────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -21,9 +22,13 @@ while [[ $# -gt 0 ]]; do
       MODE="$2"
       shift 2
       ;;
+    --prompts)
+      PROMPTS="$2"
+      shift 2
+      ;;
     *)
       echo "ERROR: unknown argument '$1'" >&2
-      echo "Usage: $0 [--mode small|big]" >&2
+      echo "Usage: $0 [--mode small|big] [--prompts <file>]" >&2
       exit 1
       ;;
   esac
@@ -54,8 +59,8 @@ if [[ ! -f "$BENCHMARKER" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$PROMPTS" ]]; then
-  echo "ERROR: prompts.txt not found at $PROMPTS" >&2
+if [[ -n "$PROMPTS" && ! -f "$PROMPTS" ]]; then
+  echo "ERROR: prompts file not found at $PROMPTS" >&2
   exit 1
 fi
 
@@ -64,7 +69,7 @@ echo " Ollama LLM Benchmark"
 echo " $(date '+%Y-%m-%d %H:%M:%S')"
 echo " Mode   : $MODE"
 echo " Models : ${MODELS[*]}"
-echo " Prompts: $PROMPTS"
+echo " Prompts: ${PROMPTS:-<from config.json>}"
 echo "========================================"
 echo ""
 
@@ -74,7 +79,9 @@ for model in "${MODELS[@]}"; do
   echo "----------------------------------------"
   echo " Starting: $model"
   echo "----------------------------------------"
-  if "$PYTHON" "$BENCHMARKER" "$model" "$MODE"; then
+  CMD=("$PYTHON" "$BENCHMARKER" "$model" "$MODE")
+  [[ -n "$PROMPTS" ]] && CMD+=("$PROMPTS")
+  if "${CMD[@]}"; then
     echo " [OK] $model"
   else
     echo " [FAIL] $model — skipping"

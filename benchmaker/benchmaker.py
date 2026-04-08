@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 Benchmark an Ollama LLM model against prompts in a prompt file.
-Usage: python benchmaker.py <model_name> [mode]
+Usage: python benchmaker.py <model_name> [mode] [prompts_file]
 
-  mode: small (default) — send each line as a separate prompt
-        big             — send the entire file as one prompt
+  mode:         small (default) — send each line as a separate prompt
+                big             — send the entire file as one prompt
+  prompts_file: path to prompt file (default: read from config.json)
 
 Outputs:
   data.out   — raw per-prompt results (CSV)
@@ -89,14 +90,15 @@ def main() -> None:
         print("Usage: python benchmaker.py <model_name> [small|big]", file=sys.stderr)
         sys.exit(1)
 
-    model = sys.argv[1]
-    mode  = sys.argv[2].lower() if len(sys.argv) >= 3 else "small"
+    model       = sys.argv[1]
+    mode        = sys.argv[2].lower() if len(sys.argv) >= 3 else "small"
+    prompts_file = sys.argv[3] if len(sys.argv) >= 4 else PROMPTS_FILE
 
     if mode not in ("small", "big"):
         print(f"ERROR: mode must be 'small' or 'big', got '{mode}'", file=sys.stderr)
         sys.exit(1)
 
-    prompts = load_prompts(PROMPTS_FILE, mode)
+    prompts = load_prompts(prompts_file, mode)
 
     ensure_header(DATA_OUT,   DATA_HEADER)
     ensure_header(RESULT_OUT, RESULT_HEADER)
@@ -110,7 +112,7 @@ def main() -> None:
     total_processed = 0
     tps_list        = []
 
-    print(f"[benchmaker] model={model}  mode={mode}  prompts={len(prompts)}")
+    print(f"[benchmaker] model={model}  mode={mode}  file={prompts_file}  prompts={len(prompts)}")
     print("  [warmup] loading model...", end="", flush=True)
     try:
         ollama.Client(host=OLLAMA_HOST).chat(
