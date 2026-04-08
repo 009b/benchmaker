@@ -1,0 +1,5 @@
+What is the capital of France?
+Explain the difference between TCP and UDP in simple terms.
+Write a Python function to compute the Fibonacci sequence up to n terms.
+What are the main causes of the French Revolution?
+Summarize the theory of relativity in three sentences.

@@ -1,0 +1,10 @@
+Act like senior developer and devops.
+We are building scripts to benchmark a few llms. Use bash and python.
+I use ollama as a wrapper and container for local inference of llms
+use https://github.com/ollama/ollama-python and https://docs.ollama.com/ if you need details
+
+format call python script - # python benchmarker.py <name_llm>
+py script write data file data.out , contain
+py script write result file result.out , contain date, llm name, toker per second, number of unput, processed, output tokens,
+
+controlling bash script launch python for each input data and llm

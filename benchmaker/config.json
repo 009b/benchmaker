@@ -1,0 +1,10 @@
+{
+  "ollama": {
+    "host": "http://127.0.0.1:11434"
+  },
+  "benchmark": {
+    "prompts_file": "prompts/prompts.txt",
+    "data_out":     "data/data.out",
+    "result_out":   "data/result.out"
+  }
+}
