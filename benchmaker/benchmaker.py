@@ -60,11 +60,16 @@ def ensure_header(path: str, header: str) -> None:
 
 def run_prompt(model: str, prompt: str) -> dict:
     """Run a single prompt and return metrics."""
+    # estimate token count (~4 chars/token) and set context window with 20% headroom
+    estimated_tokens = len(prompt) // 4
+    num_ctx = max(4096, int(estimated_tokens * 1.2))
+
     client = ollama.Client(host=OLLAMA_HOST)
     start = time.perf_counter()
     response = client.chat(
         model=model,
         messages=[{"role": "user", "content": prompt}],
+        options={"num_ctx": num_ctx},
     )
     elapsed = time.perf_counter() - start
 
