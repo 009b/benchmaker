@@ -11,7 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON="${PYTHON:-python3}"
 BENCHMARKER="${SCRIPT_DIR}/benchmaker.py"
-PROMPTS="${SCRIPT_DIR}/prompts/prompts.txt"
+PROMPTS="${SCRIPT_DIR}/../prompts/prompts.txt"
 MODE="small"
 
 # ── parse arguments ────────────────────────────────────────────────────────────
